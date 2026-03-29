@@ -1,0 +1,61 @@
+{
+  "name": "ollama-codex",
+  "displayName": "ollama-codex",
+  "description": "",
+  "publisher": "kparth01",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onChatParticipant:ollama"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "chat": [
+      {
+        "id": "ollama-codex",            
+        "label": "Ollama Chat",
+        "icon": "chat",          
+        "description": "Ask questions to a 20B gpt-oss model"
+      }
+    ],
+    "commands": [
+      {
+        "command": "ollama-codex.helloWorld",
+        "title": "Hello World"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "ollama",
+        "name": "ollama",
+        "fullName": "Ollama Assistant"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.110.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  },
+  "dependencies": {
+    "axios": "^1.13.6"
+  }
+}
