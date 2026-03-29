@@ -44,7 +44,7 @@ The extension can be further customized by modifying the `MODELS` object and adj
 
 ## Demo
 
-![Demo](./Demo.mov)
+![Demo](./demo.gif)
 
 ## Contributing
 

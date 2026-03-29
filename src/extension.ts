@@ -57,6 +57,8 @@ function isResponse(obj: unknown): obj is Response {
 }
 
 
+
+
 export function activate(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand('ollama-codex.helloWorld', async() => {
     vscode.window.showInformationMessage("ollama chat is activated");
@@ -104,17 +106,11 @@ export function activate(context: vscode.ExtensionContext) {
           const editor = vscode.window.activeTextEditor;
           const code = editor?.document.getText();
 
+          const messages = buildMessages(chatContext, userPrompt, code);
+
           const response = await axios.post('http://localhost:11434/api/chat', {
             model: MODELS.SMART,
-            messages: [
-              {   
-                role: 'user',
-                content: `SYSTEM_PROMPT: ${SYSTEM_PROMPT}\n\n
-                          USER_PROMPT: ${userPrompt}\n\n
-                          CODE:\n${code || ""}
-                          ` 
-              }
-            ],
+            messages,
             stream: false
           });
 
@@ -127,9 +123,42 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
   
-  
   context.subscriptions.push(disposable);
   context.subscriptions.push(participant);
+
+  const buildMessages = (chatContext: vscode.ChatContext, userPrompt: string, code?: string) => {
+    let hist = chatContext.history || [];
+
+    if (hist?.length > 10) {
+      hist = hist.slice(-6)
+    }
+
+    const messages = hist.map((msg: any) => {
+      let content = "";
+
+      if (typeof msg.content === "string") {
+        content = msg.content;
+      } else if (msg.content?.value) {
+        // MarkdownString case
+        content = msg.content.value;
+      }
+
+      return {
+        role: msg.role,
+        content
+      };
+    })
+
+    messages.push({
+      role: 'user',
+      content: `SYSTEM_PROMPT: ${SYSTEM_PROMPT}\n\n
+                USER_PROMPT: ${userPrompt}\n\n
+                CODE:\n${code || ""}
+                `
+    })
+
+    return messages;
+  }
 
   //custon functions:
   const generateLLMOutput = (response) => {
