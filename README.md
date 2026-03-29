@@ -42,14 +42,17 @@ The **Ollama Codex** extension integrates an AI-powered coding assistant directl
 
 The extension can be further customized by modifying the `MODELS` object and adjusting the `SYSTEM_PROMPT` to better fit your needs.
 
+## Demo
+
+![Demo](./Demo.mov)
+
 ## Contributing
 
 We welcome contributions! If you have any suggestions, bug reports, or would like to enhance the functionality of this extension, please open an issue on our [GitHub repository](https://github.com/your-repo-url).
 
 ## License
 
-This extension is licensed under the MIT License. See the `LICENSE` file for more details.
-
+[MIT](./LICENSE) License © 2026-PRESENT [Parth Kansara](https://github.com/kparth01)
 ---
 
 Feel free to reach out if you have any questions or need further assistance!
