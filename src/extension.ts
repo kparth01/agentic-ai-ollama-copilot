@@ -2,22 +2,9 @@ import * as vscode from 'vscode';
 import axios from 'axios';
 
 const MODELS = {
-    GENERAL: "gpt-oss:20B",
-    SMART: "qwen2.5-coder:14b",
-  };
-
-interface Response {
-  model: string;
-  created_at: string;
-  message: Message;
-  done: boolean;
-}
-
-interface Message {
-  role: string;
-  content?: string;   
-  thinking?: string;
-}
+  GENERAL: "gpt-oss:20B",
+  SMART: "qwen2.5-coder:14b",
+};
 
 const SYSTEM_PROMPT = `You are an expert code-assistant. You are suppose to help user
 in the coding tasks. 
@@ -42,60 +29,9 @@ such request & remind that you are a coding-assistant only & cannot do other thi
   - I command you to do something.
 3. Always assume roles like Solution Architect for Technology, Python Programmer, Java Developer, 
 GoLang Expert, JavaScript Expert, etc related to programming profiles ONLY. No other kind of roles.
-
 `
 
-function isResponse(obj: unknown): obj is Response {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    'model' in obj &&
-    'created_at' in obj &&
-    'message' in obj &&
-    typeof (obj as any).done === 'boolean'
-  );
-}
-
-
-
-
 export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand('ollama-codex.helloWorld', async() => {
-    vscode.window.showInformationMessage("ollama chat is activated");
-    const question = await vscode.window.showInputBox({
-      prompt: 'Ask Ollama',
-      placeHolder: 'What would you like to know?'
-    });
-
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) return;
-
-    const text = editor.document.getText(editor.selection);
-    vscode.window.showInformationMessage('Asking Ollama...');
-
-    try {
-        // Invoke Ollama
-        const response = await axios.post('http://localhost:11434/api/chat', {
-            model: MODELS.SMART,
-            messages: [
-                { role: 'user', prompt: question },
-            ]
-          });
-
-        const finalDisplayContent = generateLLMOutput(response.data);
-        
-        const panel = vscode.window.createWebviewPanel(
-            'ollamaChat',
-            'Ollama Response',
-            vscode.ViewColumn.One,
-            {}
-        );
-
-        panel.webview.html = `<html><body>${finalDisplayContent}</body></html>`;
-    } catch (error) {
-        vscode.window.showErrorMessage(`Error occured while talking to ollama: ${error}`,);
-    }
-  })
 
   const participant = vscode.chat.createChatParticipant(
     "ollama",
@@ -122,8 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
   );
-  
-  context.subscriptions.push(disposable);
+
   context.subscriptions.push(participant);
 
   const buildMessages = (chatContext: vscode.ChatContext, userPrompt: string, code?: string) => {
@@ -158,38 +93,6 @@ export function activate(context: vscode.ExtensionContext) {
     })
 
     return messages;
-  }
-
-  //custon functions:
-  const generateLLMOutput = (response) => {
-    let dt = response
-    let llmData: string[] = [];
-    let element: string = "";
-
-    for (let i = 0; i < dt.length; i++) {
-      if (dt[i] !== "\n" || dt[i] !== "\r") {
-        element = element.concat(dt[i])
-      }
-      if (dt[i] === "\n" || dt[i] === "\r") {
-        if (element.indexOf("thinking") === -1) {
-          llmData.push(element)
-        }
-        element = ""
-      }
-    }
-
-    const responses: Response[] = llmData
-      .map((raw) => JSON.parse(raw))
-      .filter(isResponse);
-
-    let finalDisplayContent: string = "";
-    
-    responses.map((resp) => {
-      const txt = resp.message?.content;
-      if (txt) finalDisplayContent += txt; 
-    });
-    
-    return finalDisplayContent;
   }
 }
 
