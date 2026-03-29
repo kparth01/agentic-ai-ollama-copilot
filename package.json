@@ -1,38 +1,23 @@
 {
   "name": "ollama-codex",
-  "displayName": "ollama-codex",
-  "description": "Ollama Codex Extension for Visual Studio Code",
+  "displayName": "Ollama Codex",
+  "description": "Local AI Copilot for VSCode using Ollama models",
   "publisher": "kparth01",
+  "categories": ["AI", "Other"],
+  "keywords": ["ollama", "ai", "copilot", "llm", "local ai"],
   "repository": {
     "type": "git",
     "url": "https://github.com/kparth01/agentic-ai-ollama-copilot.git"
   },
-  "version": "0.0.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.110.0"
   },
-  "categories": [
-    "Other"
-  ],
   "activationEvents": [
     "onChatParticipant:ollama"
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "chat": [
-      {
-        "id": "ollama-codex",            
-        "label": "Ollama Chat",
-        "icon": "chat",          
-        "description": "Ask questions to a 20B gpt-oss model"
-      }
-    ],
-    "commands": [
-      {
-        "command": "ollama-codex.helloWorld",
-        "title": "Hello World"
-      }
-    ],
     "chatParticipants": [
       {
         "id": "ollama",
