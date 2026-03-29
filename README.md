@@ -1,15 +1,34 @@
-# Ollama Codex Extension for Visual Studio Code
+# 🚀 Agentic AI Ollama Copilot (VSCode Extension)
+
+> Local-first AI Copilot **ollama-codex** for VSCode powered by Ollama + Agentic AI workflows
+
 
 ## Overview
 
-The **Ollama Codex** extension integrates an AI-powered coding assistant directly into Visual Studio Code. It leverages the capabilities of Ollama's language models to help users with coding tasks, provide explanations, and even generate code snippets.
+**Agentic AI Ollama Copilot** is a VSCode extension that brings **autonomous coding assistance** directly into your editor using **local LLMs via Ollama**.
 
-## Features
+Unlike traditional copilots, this extension enables **agentic workflows** — allowing AI to:
+- Understand context across files
+- Execute multi-step coding tasks
+- Assist with debugging, refactoring, and generation
 
-- **Ask Ollama**: Users can pose questions or request assistance directly from within VSCode.
-- **Integrated Chat**: The extension provides a webview panel where you can view responses from the AI model.
-- **Contextual Code Analysis**: When you select code in the editor, the selected text is sent to the AI for analysis and suggestions.
-- **Dynamic Responses**: The extension dynamically generates responses based on your prompts and the selected code.
+All while running **fully local (no API dependency)**.
+
+
+## Why This Exists
+
+Modern AI coding tools like GitHub Copilot are powerful, but:
+- ❌ Require cloud APIs
+- ❌ Limited control over models
+- ❌ Restricted customization
+
+With **Ollama + Agentic AI**, you get:
+- ✅ Local-first privacy
+- ✅ Model flexibility (Llama, Mistral, DeepSeek, etc.)
+- ✅ Custom workflows & prompts
+- ✅ Zero API cost
+
+Local LLM adoption is rapidly growing due to **privacy + flexibility benefits** :contentReference[oaicite:1]{index=1}
 
 ## Getting Started
 
@@ -20,13 +39,55 @@ The **Ollama Codex** extension integrates an AI-powered coding assistant directl
    - Click on 'Install' next to the extension.
 
 2. **Configure Ollama Server**:
-   - Ensure that you have an instance of Ollama running on your local machine.
+   - Ensure that you have an instance of Ollama running on your local machine. (If you need to install ollama visit: https://ollama.com/)
    - The default endpoint is set to `http://localhost:11434/api/chat`. If your server runs on a different port or host, update the code accordingly.
 
-3. **Activate the Extension**:
-   - Open any project in VSCode.
-   - Press `Ctrl+Shift+P` to open the Command Palette.
-   - Type and select "ollama-codex.helloWorld" to activate the extension.
+## Project Structure
+
+```text
+├── src/
+│   ├── extension.ts
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+## Architecture
+
+```text
+VSCode Extension
+      ↓
+Agent Layer (Prompt + Tools + Memory)
+      ↓
+Ollama Runtime (Local LLM)
+      ↓
+Model (qwen2.5-coder:14B)
+```
+
+##  Key Components
+
+- **VSCode Extension Layer**
+  - UI integration
+  - Command palette actions
+  - Editor context awareness
+
+- **Agent Engine**
+  - Prompt orchestration
+  - Multi-step reasoning
+  - Tool execution loop
+
+- **Ollama Integration**
+  - Local inference
+  - Model switching
+  - Zero-latency interaction
+
+## How to create VSIX for Azure Plugin:
+
+- Run command: `npm install -g @vscode/vsce` to install vsce.
+- Run command: `vsce package` to create vsix file. 
+- Upload the new version on Azure portal [link](https://dev.azure.com)
+
+
 
 ## Usage
 
@@ -37,12 +98,8 @@ The **Ollama Codex** extension integrates an AI-powered coding assistant directl
 - **Code Analysis**:
   - Select any piece of code in the editor.
   - The selected text will be automatically sent to the AI for analysis.
-  
-## Customization
 
-The extension can be further customized by modifying the `MODELS` object and adjusting the `SYSTEM_PROMPT` to better fit your needs.
-
-## Demo
+## Working Demo
 
 ![Demo](./demo.gif)
 
