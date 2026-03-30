@@ -3,13 +3,23 @@
   "displayName": "Ollama Codex",
   "description": "Local AI Copilot for VSCode using Ollama models",
   "publisher": "kparth01",
+  "icon": "logo.png",
   "categories": ["AI", "Other"],
-  "keywords": ["ollama", "ai", "copilot", "llm", "local ai"],
+  "keywords": [
+    "ollama",
+    "ai",
+    "copilot",
+    "local llm",
+    "local ai",
+    "chatgpt alternative",
+    "code assistant",
+    "ollama-codex"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/kparth01/agentic-ai-ollama-copilot.git"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.110.0"
   },
