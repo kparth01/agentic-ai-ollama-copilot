@@ -96,5 +96,3 @@ We welcome contributions! If you have any suggestions, bug reports, or would lik
 ## License
 
 [MIT](./LICENSE) License © 2026-PRESENT [Parth Kansara](https://github.com/kparth01)
-
----
