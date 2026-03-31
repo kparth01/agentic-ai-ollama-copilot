@@ -19,9 +19,9 @@
     "type": "git",
     "url": "https://github.com/kparth01/agentic-ai-ollama-copilot.git"
   },
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
-    "vscode": "^1.110.0"
+    "vscode": "^1.109.0"
   },
   "activationEvents": [
     "onChatParticipant:ollama"
@@ -47,7 +47,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "^1.109.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.3",
