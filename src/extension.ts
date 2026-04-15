@@ -3,10 +3,9 @@ import axios, { formToJSON } from 'axios';
 import { normalizeResponse } from './normalizeResponse';
 
 export const MODELS = {
-  GENERAL: "gpt-oss:20B",
   QWEN_SMART: "qwen2.5-coder:14b",
   QWEN_SMALL: "qwen2.5-coder:7b",
-  DEEPSEEK_SMART: "deepseek-coder-v2:16b",
+  GEMMA4: "gemma4"
 };
 
 let conversationHistory: Array<{role: string, content: string}> = []
@@ -84,6 +83,9 @@ Respond now.
 `
 
 export function activate(context: vscode.ExtensionContext) {
+  const config = vscode.workspace.getConfiguration('assistant');
+  let activeModel: string = config.get('model') || MODELS.QWEN_SMART;
+
 
   const participant = vscode.chat.createChatParticipant(
     "ollama",
@@ -97,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
           const messages = buildMessages(chatContext, userPrompt, code, conversationHistory);
 
           const response = await axios.post('http://localhost:11434/api/chat', {
-            model: MODELS.QWEN_SMART,
+            model: activeModel,
             messages,
             stream: false,
             format: "json"
@@ -109,7 +111,7 @@ export function activate(context: vscode.ExtensionContext) {
           })
 
           // const llmOutput = response.data?.message?.content;
-          const finalDisplayContent = normalizeResponse(response, MODELS.QWEN_SMART);
+          const finalDisplayContent = normalizeResponse(response, activeModel);
 
           conversationHistory.push({
             role: "assistant",
@@ -128,7 +130,27 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  const disposable = vscode.commands.registerCommand('assistant.switchModel', () => {
+    vscode.window.showQuickPick(Object.values(MODELS), { placeHolder: 'Select a model' }).then((model) => {
+      if (model) {
+        activeModel = model;
+        vscode.workspace.getConfiguration('assistant').update('model', model, true);
+        vscode.window.showInformationMessage(`Switched to ${model}`);
+        statusBarItem.text = `🤖 ${model}`;
+      }
+    });
+  });
+
+  // Create status bar item for easy model switching
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBarItem.text = `🤖 ${activeModel}`;
+  statusBarItem.tooltip = 'Click to switch Ollama model';
+  statusBarItem.command = 'assistant.switchModel';
+  statusBarItem.show();
+
   context.subscriptions.push(participant);
+  context.subscriptions.push(disposable);
+  context.subscriptions.push(statusBarItem);
 
   const buildMessages = (
     chatContext: vscode.ChatContext, 
@@ -201,4 +223,3 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
-

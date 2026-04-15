@@ -24,6 +24,7 @@
     "vscode": "^1.109.0"
   },
   "activationEvents": [
+    "onStartupFinished",
     "onChatParticipant:ollama"
   ],
   "main": "./out/extension.js",
@@ -34,7 +35,25 @@
         "name": "ollama",
         "fullName": "Ollama Assistant"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "assistant.switchModel",
+        "title": "Ollama Assistant: Switch Model",
+        "category": "Assistant"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Assistant Configuration",
+      "properties": {
+        "assistant.model": {
+          "type": "string",
+          "default": "qwen2.5-coder:14b",
+          "description": "Select the model to use for responses"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

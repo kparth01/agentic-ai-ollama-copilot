@@ -64,7 +64,7 @@ Agent Layer (Prompt + Tools + Memory)
       ↓
 Ollama Runtime (Local LLM)
       ↓
-Model (qwen2.5-coder:14B)
+Model (qwen2.5-coder:14B, gemma4)
 ```
 
 ##  Key Components
@@ -82,9 +82,12 @@ Model (qwen2.5-coder:14B)
 
 ![Demo](./demo.gif)
 
+### Change Model Demo
+![Demo](./change_model.gif)
+
 ## Future Release
 
-- Onboard other models like `mistral`.
+- Onboard other models like `gemma4`.
 - Add more flexibilty to allow model-switching.
 - Add more context-window for models.
 
