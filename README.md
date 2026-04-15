@@ -41,9 +41,10 @@ Local LLM adoption is rapidly growing due to **privacy + flexibility benefits**
 
 2. **Configure Ollama Server**:
    - Ensure that you have an instance of Ollama running on your local machine from [here](https://ollama.com/)
-   - Install `qwen2.5-coder:14b` from terminal/powershell:
+   - Install `qwen2.5-coder:14b` or `gemma4` from terminal/powershell:
 
         `ollama pull qwen2.5-coder:14b`
+        `ollama pull gemma4`
 
 ## Project Structure
 
