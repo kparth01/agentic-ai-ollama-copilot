@@ -41,6 +41,16 @@
         "command": "assistant.switchModel",
         "title": "Ollama Assistant: Switch Model",
         "category": "Assistant"
+      },
+      {
+        "command": "assistant.switchMode",
+        "title": "Ollama Assistant: Switch Mode",
+        "category": "Assistant"
+      },
+      {
+        "command": "assistant.rescanWorkspace",
+        "title": "Ollama Assistant: Rescan Workspace",
+        "category": "Assistant"
       }
     ],
     "configuration": {
@@ -51,6 +61,12 @@
           "type": "string",
           "default": "qwen2.5-coder:14b",
           "description": "Select the model to use for responses"
+        },
+        "assistant.agentMode": {
+          "type": "string",
+          "default": "ask",
+          "enum": ["ask", "plan", "agent"],
+          "description": "Active mode: ask (suggest only), plan (plan only), agent (execute file operations)"
         }
       }
     }
