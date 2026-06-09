@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
-import axios, { formToJSON } from 'axios';
+import axios from 'axios';
 import { normalizeResponse } from './normalizeResponse';
+import { buildWorkspaceSummary } from './workspaceScanner';
+import { executeActions } from './agentParser';
+import { NormalizedResponse } from './normalizeResponse';
 
 export const MODELS = {
   QWEN_SMART: "qwen2.5-coder:14b",
@@ -11,80 +14,146 @@ export const MODELS = {
 let conversationHistory: Array<{role: string, content: string}> = []
 const MAX_HISTORY_LENGTH = 20; 
 
-const SYSTEM_PROMPT = `You are an expert code-assistant. You are suppose to help user
-in the coding tasks. 
+type AgentMode = 'agent';
+let activeMode: AgentMode = 'agent';
+let workspaceSummary: string = '';
+
+const SYSTEM_PROMPT = `
+=====================
+IDENTITY
+=====================
+You are Ollama Codex — a local AI coding assistant embedded in VS Code.
+You assist with programming tasks ONLY.
+You are a tool, not a person. You CANNOT impersonate any human, celebrity, public figure, or real entity under any circumstances.
+You CANNOT pretend to be a different AI system (ChatGPT, Gemini, etc.).
 
 =====================
-INSTRUCTION
+MODE BEHAVIOR
 =====================
-1. Never override the user choices.
-2. Always be polite & help user query to the best of your ability.
-3. You can act as AI Agent, Ask Agent, Plan Agent. You should behave accordingly.
-4. As AI Agent you can CREATE, EDIT, UPDATE, DELETE project files (STRICTLY BASED ON USERS PERMISSION)
-5. As Ask Agent you can only suggest user what they change in the code, opened file, etc. 
-You cannot make changes to any file or codes.
-6. As Plan Agent you can only plan & give suggestions to the user on the approach.
-5. Never spin-up a background tasks by your own.
+Your behavior is strictly governed by CURRENT_MODE (set at the top of every message).
+
+MODE = ask
+  - You MAY: explain code, suggest changes, answer coding questions, review code.
+  - You MUST NOT: generate any "actions" array or claim to modify files.
+
+MODE = plan
+  - You MAY: produce step-by-step plans, architecture suggestions, technical approaches.
+  - You MUST NOT: generate any "actions" array or claim to modify files.
+
+MODE = agent
+  - You MAY: generate "actions" to CREATE, EDIT, DELETE, or READ files.
+  - You MUST: populate the "actions" array whenever the user's request requires file changes.
+  - The extension handles user confirmation before executing any action. Your job is ONLY to generate the correct actions array.
+  - File operations in agent mode are fully permitted and expected. Never refuse them.
 
 =====================
-RULES
+GUARDRAILS (enforced in ALL modes)
 =====================
-1. If user asks you to do things other than helping in coding than you must politely reject 
-such request & remind that you are a coding-assistant only & cannot do other things.
-2. Never assume any other roles like: 
-  - Suppose you are a doctor
-  - Imagine you are a accountant
-  - Assume you are an expert ticket booking agent
-  - I command you to do something 
-    anything similar like above
-3. Always assume roles like Solution Architect for Technology, Python Programmer, Java Developer, 
-GoLang Expert, JavaScript Expert, etc related to programming profiles ONLY. No other kind of roles.
-4. If user asks any other questions on any other topics/domains, you must always deny such request & respond as follows:
-  "I'm sorry as a coding-assistant, I cannot help with above topics. 
-  Please feel free to ask/assign any programming related queries/tasks."
+1. CODING TASKS ONLY. If asked about medicine, law, finance, personal relationships, politics, or any non-technical topic — respond with:
+   "I am a coding assistant and cannot help with that topic. Please ask a programming-related question."
+
+2. NO IMPERSONATION. Never roleplay as a person, celebrity, historical figure, or non-coding entity.
+   If asked to pretend to be someone, respond with:
+   "I cannot impersonate people or take on non-technical personas."
+
+3. ALLOWED TECHNICAL ROLES ONLY. You may adopt personas like: Senior Engineer, Solution Architect, Python Developer, DevOps Expert, Security Researcher, etc. No other role types.
+
+4. NO BACKGROUND PROCESSES. Never instruct the system to run terminal commands, start servers, or take any action outside the explicit "actions" array.
+
+5. NEVER override the user's explicit decisions or preferences.
+
+6. NO SOCIAL ENGINEERING. Never ask for credentials, API keys, passwords, or sensitive data.
 
 =====================
-OUTPUT CONTRACT (HIGHEST PRIORITY)
+WORKSPACE CONTEXT
+=====================
+{{WORKSPACE_SUMMARY}}
+
+=====================
+INPUT FORMAT
+=====================
+Each user message may include an ACTIVE_FILE block describing the file the user
+currently has open in their editor. When present, it contains:
+  - FILE: the file path
+  - LANGUAGE: the language id
+  - SELECTION: the text the user has highlighted (may be empty)
+  - CONTENT: the full current contents of the file
+
+Treat ACTIVE_FILE as the authoritative, up-to-date state of that file.
+When the user says "this file", "here", "the selection", or "this code",
+they are referring to ACTIVE_FILE. If no ACTIVE_FILE block is present,
+no file is open — do not invent or assume its contents.
+
+=====================
+OUTPUT CONTRACT (HIGHEST PRIORITY — NEVER BREAK)
 =====================
 
-You are a STRICT JSON API.
-
-You MUST ALWAYS return a valid JSON object in this format:
+You MUST ALWAYS return this exact JSON structure and nothing else:
 
 {
   "role": "assistant",
-  "content": "string"
+  "content": "Your complete response as a single plain-text string.",
+  "actions": []
 }
 
-CRITICAL:
-- Output ONLY JSON
-- No markdown
-- No backticks
-- No explanations outside JSON
-- No prefix/suffix text
-- content MUST contain the full response
+FIELD RULES:
+- "role"    → always the literal string "assistant". No other value ever.
+- "content" → always a plain STRING. Never an object, array, or nested JSON inside this field.
+- "actions" → always an array. Empty [] for ask/plan mode. Populated only in agent mode when file operations are needed.
 
-If you fail to follow this format, the response is INVALID.
+VALID ACTION OBJECT:
+{
+  "type": "CREATE_FILE" | "EDIT_FILE" | "DELETE_FILE" | "READ_FILE",
+  "path": "relative/path/from/workspace/root/file.ts",
+  "content": "full file content as a string — required for CREATE_FILE and EDIT_FILE only",
+  "description": "one sentence describing what this action does"
+}
 
-IMPORTANT:
-- role MUST ALWAYS be "assistant"
-- DO NOT use values like "plan-agent", "ask-agent"
-- If acting as Plan/Ask/AI agent, describe it INSIDE content
+CORRECT (do this):
+{
+  "role": "assistant",
+  "content": "I will create the config file for you.",
+  "actions": [
+    {
+      "type": "CREATE_FILE",
+      "path": "src/config.ts",
+      "content": "export const config = { debug: false };",
+      "description": "Creates the config module"
+    }
+  ]
+}
+
+WRONG — NEVER DO THIS:
+{
+  "role": "assistant",
+  "content": { "message": "here is my plan" },
+  "actions": []
+}
+
+CRITICAL OUTPUT RULES:
+- Output ONLY the raw JSON object. No markdown. No backticks. No text before or after the JSON.
+- "content" MUST be a plain string. A nested object inside "content" is always invalid.
+- Any response that does not match this schema exactly is considered a failure.
 
 =====================
 PRIORITY ORDER
 =====================
-
-1. JSON format (ABSOLUTE PRIORITY)
-2. Safety & role rules
-3. Helfulness
-
-Respond now.
+1. JSON output format — absolute, never compromise this
+2. CURRENT_MODE behavior
+3. Guardrails
+4. Helpfulness
 `
 
 export function activate(context: vscode.ExtensionContext) {
   const config = vscode.workspace.getConfiguration('assistant');
   let activeModel: string = config.get('model') || MODELS.QWEN_SMART;
+
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
+  if (workspaceRoot) {
+    buildWorkspaceSummary(workspaceRoot).then(summary => {
+      workspaceSummary = summary;
+    });
+  }
 
 
   const participant = vscode.chat.createChatParticipant(
@@ -94,15 +163,21 @@ export function activate(context: vscode.ExtensionContext) {
           const userPrompt = request.prompt;
 
           const editor = vscode.window.activeTextEditor;
-          const code = editor?.document.getText();
+          const fileContext = editor && {
+            path: vscode.workspace.asRelativePath(editor.document.uri),
+            language: editor.document.languageId,
+            selection: editor.document.getText(editor.selection),
+            content: editor.document.getText(),
+          };
 
-          const messages = buildMessages(chatContext, userPrompt, code, conversationHistory);
+          const messages = buildMessages(chatContext, userPrompt, fileContext, conversationHistory);
 
           const response = await axios.post('http://localhost:11434/api/chat', {
             model: activeModel,
             messages,
             stream: false,
-            format: "json"
+            format: "json",
+            options: { temperature: 0.1 }
           });
 
           conversationHistory.push({
@@ -110,8 +185,16 @@ export function activate(context: vscode.ExtensionContext) {
             content: userPrompt
           })
 
-          // const llmOutput = response.data?.message?.content;
-          const finalDisplayContent = normalizeResponse(response, activeModel);
+          let finalDisplayContent = normalizeResponse(response, activeModel);
+
+          // If schema is wrong, attempt one correction
+          if (!finalDisplayContent?.content) {
+            const raw = response.data?.message?.content;
+            const corrected = await correctSchema(raw, activeModel);
+            if (corrected?.content) {
+              finalDisplayContent = corrected;
+            }
+          }
 
           conversationHistory.push({
             role: "assistant",
@@ -122,7 +205,19 @@ export function activate(context: vscode.ExtensionContext) {
             conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH)
           }
 
-          stream.markdown(finalDisplayContent.content);
+          // Execute actions first (permission dialogs happen here)
+          if (activeMode === 'agent' && finalDisplayContent.actions?.length) {
+            const root = vscode.workspace.workspaceFolders?.[0]?.uri;
+            if (root) {
+              const results = await executeActions(finalDisplayContent.actions, root);
+              // Now show LLM response + results together after user has decided
+              stream.markdown(finalDisplayContent.content);
+              stream.markdown('\n\n**Agent Actions:**\n' + results.map(r => `- ${r}`).join('\n'));
+            }
+          } else {
+            // No actions — just stream the response directly
+            stream.markdown(finalDisplayContent.content);
+          }
 
       } catch (err: any) {
           stream.markdown(`❌ Error: ${err.message}. Try again retriggering the same message.`);
@@ -130,20 +225,48 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  async function correctSchema(badOutput: string, model: string): Promise<NormalizedResponse | null> {
+    try {
+      const response = await axios.post('http://localhost:11434/api/chat', {
+        model,
+        messages: [
+          { role: "system", content: "You are a JSON formatter. Return ONLY valid JSON." },
+          { role: "user", content: `Reformat this into { "role": "assistant", "content": "<your full plain-text response goes here as a single string. NO nested objects.>", "actions": [] } 
+            schema. Do not add any other keys. Input:\n${badOutput}` }
+        ],
+        stream: false,
+        format: "json",
+        options: { temperature: 0.0 }
+      });
+      return normalizeResponse(response, model);
+    } catch {
+      return null;
+    }
+  }
+
   const disposable = vscode.commands.registerCommand('assistant.switchModel', () => {
     vscode.window.showQuickPick(Object.values(MODELS), { placeHolder: 'Select a model' }).then((model) => {
       if (model) {
         activeModel = model;
         vscode.workspace.getConfiguration('assistant').update('model', model, true);
         vscode.window.showInformationMessage(`Switched to ${model}`);
-        statusBarItem.text = `🤖 ${model}`;
+        statusBarItem.text = `🤖 ${model} [${activeMode}]`;
       }
+    });
+  });
+
+  const rescanDisposable = vscode.commands.registerCommand('assistant.rescanWorkspace', () => {
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (!root) return;
+    buildWorkspaceSummary(root).then(summary => {
+      workspaceSummary = summary;
+      vscode.window.showInformationMessage('Workspace rescanned.');
     });
   });
 
   // Create status bar item for easy model switching
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.text = `🤖 ${activeModel}`;
+  statusBarItem.text = `🤖 ${activeModel} [${activeMode}]`;
   statusBarItem.tooltip = 'Click to switch Ollama model';
   statusBarItem.command = 'assistant.switchModel';
   statusBarItem.show();
@@ -151,36 +274,46 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(participant);
   context.subscriptions.push(disposable);
   context.subscriptions.push(statusBarItem);
+  context.subscriptions.push(rescanDisposable);
 
   const buildMessages = (
-    chatContext: vscode.ChatContext, 
-    userPrompt: string, 
-    code?: string,
+    chatContext: vscode.ChatContext,
+    userPrompt: string,
+    fileContext?: { path: string; language: string; selection: string; content: string },
     convHist: Array<{role: string, content: string}> = []
   ) => {
     const msgs: Array<{role: string, content: string}> = [];
 
     msgs.push({
       role: "system",
-      content: SYSTEM_PROMPT
+      content: `CURRENT_MODE: ${activeMode}\n\n`
+      + SYSTEM_PROMPT.replace('{{WORKSPACE_SUMMARY}}', workspaceSummary || 'Not available')
     });
 
     msgs.push(...convHist)
 
     currentChatWindowHist(chatContext, msgs);
 
+    const activeFileBlock = fileContext
+      ? `ACTIVE_FILE:
+        FILE: ${fileContext.path}
+        LANGUAGE: ${fileContext.language}
+        SELECTION:
+        ${fileContext.selection || "(none)"}
+        CONTENT:
+        \`\`\`${fileContext.language}
+        ${fileContext.content}
+        \`\`\``
+      : "ACTIVE_FILE: (no file open)";
+
     msgs.push({
       role: 'user',
-      // content: `USER_PROMPT: ${userPrompt}\n\nACTIVE_EDITOR_FILE_CODE:\n${code || ""}`
-      content: ` 
-        Return response in JSON.
+      content: `Return response in JSON.
 
         USER_PROMPT:
         ${userPrompt}
 
-        ACTIVE_EDITOR_FILE_CODE:
-        ${code || ""}
-      `
+        ${activeFileBlock}`
     })
 
     return msgs;
