@@ -14,7 +14,7 @@ export const MODELS = {
 let conversationHistory: Array<{role: string, content: string}> = []
 const MAX_HISTORY_LENGTH = 20; 
 
-type AgentMode = 'ask' | 'plan' | 'agent';
+type AgentMode = 'agent';
 let activeMode: AgentMode = 'agent';
 let workspaceSummary: string = '';
 
@@ -185,7 +185,6 @@ export function activate(context: vscode.ExtensionContext) {
             content: userPrompt
           })
 
-          // const llmOutput = response.data?.message?.content;
           let finalDisplayContent = normalizeResponse(response, activeModel);
 
           // If schema is wrong, attempt one correction
@@ -251,19 +250,7 @@ export function activate(context: vscode.ExtensionContext) {
         activeModel = model;
         vscode.workspace.getConfiguration('assistant').update('model', model, true);
         vscode.window.showInformationMessage(`Switched to ${model}`);
-        statusBarItem.text = `🤖 ${model}`;
-      }
-    });
-  });
-
-  const modeDisposable = vscode.commands.registerCommand('assistant.switchMode', () => {
-    vscode.window.showQuickPick(['ask', 'plan', 'agent'], {
-      placeHolder: 'Select agent mode'
-    }).then(mode => {
-      if (mode) {
-        activeMode = mode as AgentMode;
-        statusBarItem.text = `🤖 ${activeModel} [${activeMode}]`;
-        vscode.window.showInformationMessage(`Mode switched to: ${activeMode}`);
+        statusBarItem.text = `🤖 ${model} [${activeMode}]`;
       }
     });
   });
@@ -287,7 +274,6 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(participant);
   context.subscriptions.push(disposable);
   context.subscriptions.push(statusBarItem);
-  context.subscriptions.push(modeDisposable);
   context.subscriptions.push(rescanDisposable);
 
   const buildMessages = (

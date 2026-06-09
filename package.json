@@ -43,11 +43,6 @@
         "category": "Assistant"
       },
       {
-        "command": "assistant.switchMode",
-        "title": "Ollama Assistant: Switch Mode",
-        "category": "Assistant"
-      },
-      {
         "command": "assistant.rescanWorkspace",
         "title": "Ollama Assistant: Rescan Workspace",
         "category": "Assistant"

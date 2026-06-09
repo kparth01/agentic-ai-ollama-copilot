@@ -2,7 +2,7 @@
 
 > 🚀 Local AI Copilot for VSCode  
 > ⚡ Runs fully on Ollama (no API required)  
-> 🧠 Agentic workflows for coding, debugging & refactoring
+> 🧠 Agentic — it doesn't just suggest code, it writes, edits & refactors files for you.  
 
 ## Overview
 
@@ -82,17 +82,33 @@ Model (qwen2.5-coder:14B, gemma4)
 
 ## Working Demo
 
-![Demo](./demo.gif)
+Type **`@ollama`** in the VSCode Chat box — then just describe what
+you want. The assistant creates, edits and deletes files across your project on its own, fully
+local. 
+
+*Tip: prefix every request with `@ollama` to call the plugin.*
+
+### Agentic Operations
+
+![Agentic Flow](./agentic_flow.gif)
+
+with:
+
+### 🤖 Agentic Flow
+
+**Introducing Agent mode**
+
+- Just describe what you want — **Ollama Codex** creates, edits and deletes files across your project on its own, fully local. Watch it work as above.
+
 
 ### Change Model Demo
 ![Demo](./change_model.gif)
 
+
 ## Future Release
 
-- Onboard other models like `gemma4`.
-- Add more flexibilty to allow model-switching.
+- Onboard other models like `qwen3` and other latest.
 - Add more context-window for models.
-
 
 ## Contributing
 
